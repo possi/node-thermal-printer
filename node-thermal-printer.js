@@ -1,5 +1,5 @@
 var fs = require('fs'),
-    PNG = require('node-png').PNG;
+    PNG = require('pngjs').PNG;
 
 var writeFile = require('write-file-queue')({
     retries : 1000, 						    // number of write attempts before failing
