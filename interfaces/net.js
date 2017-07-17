@@ -1,7 +1,7 @@
 var net = require("net");
 
 function NetPrint(host, port) {
-  this.timeout = 1000;
+  this.timeout = 3000;
   this.host = host;
   this.port = port || 9100;
 }
@@ -24,6 +24,12 @@ NetPrint.prototype.execute = function(buffer, cb) {
     }
     printer.end();
   });
+  printer.on('timeout', function () {
+    if (typeof cb !== "undefined") {
+      cb("Error: Socket Timeout");
+    }
+    printer.end();
+  });
 };
 NetPrint.prototype.isPrinterConnected = function(exists){
   var printer = net.connect({
@@ -35,6 +41,10 @@ NetPrint.prototype.isPrinterConnected = function(exists){
     printer.end();
   });
   printer.on('error', function (err) {
+    exists(false);
+    printer.end();
+  });
+  printer.on('timeout', function () {
     exists(false);
     printer.end();
   });
