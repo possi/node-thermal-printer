@@ -1,13 +1,8 @@
 var fs = require('fs'),
-    PNG = require('pngjs').PNG;
+  PNG = require('pngjs').PNG,
+  getInterface = require("./interfaces");
 
-var writeFile = require('write-file-queue')({
-    retries : 1000, 						    // number of write attempts before failing
-    waitTime : 200 					        // number of milliseconds to wait between write attempts
-    //, debug : console.error 			// optionally pass a function to do dump debug information to
-});
-
-var net = require("net");
+var iface = null;
 var config = undefined;
 var buffer = null;
 var printerConfig;
@@ -20,6 +15,8 @@ module.exports = {
       config = require('./configs/epsonConfig');
     }
 
+    iface = getInterface(initConfig.interface);
+
     if(!initConfig.width) initConfig.width = 48;
     if(!initConfig.characterSet) initConfig.characterSet = "SLOVENIA";
     if(typeof(initConfig.removeSpecialCharacters) == "undefined") initConfig.removeSpecialCharacters = false;
@@ -29,32 +26,18 @@ module.exports = {
   },
 
   execute: function(cb){
-    if(printerConfig.ip){
-      var printer = net.connect({
-        host : printerConfig.ip,
-        port : printerConfig.port
-      });
-      printer.write(buffer);
-      printer.end();
-
-    } else {
-      writeFile(printerConfig.interface , buffer, function (err) {
-        if (err) {
-          if ("function" == typeof cb) {
-            cb("Print failed: " + err);
-          } else {
-            console.error("Print failed", err);
-          }
-        } else {
-          buffer = null;
-          if ("function" == typeof cb) {
-            cb( null );
-          } else {
-            console.log("Print done");
-          }
+    iface.execute(buffer, function (err) {
+      if (!err) {
+        buffer = null;
+        if (typeof cb === "function") {
+          cb(null);
         }
-      });
-    }
+      } else {
+        if (typeof cb === "function") {
+          cb(err);
+        }
+      }
+    });
   },
 
   cut: function(){
@@ -128,8 +111,8 @@ module.exports = {
   },
 
   upsideDown: function(enabled){
-     if(enabled) append(config.UPSIDE_DOWN_ON);
-     else append(config.UPSIDE_DOWN_OFF);
+    if(enabled) append(config.UPSIDE_DOWN_ON);
+    else append(config.UPSIDE_DOWN_OFF);
   },
 
   invert: function(enabled){
@@ -287,12 +270,7 @@ module.exports = {
   },
 
   isPrinterConnected: function(exists){
-    if(printerConfig.interface){
-      fs.exists(printerConfig.interface, function(ex){
-        exists(ex);
-      });
-    }
-
+    iface.exists(exists);
   },
 
 
@@ -861,32 +839,18 @@ module.exports = {
   },
 
 
-  raw: function(text,cb) {
-    if (printerConfig.ip) {
-      var printer = net.connect({
-        host: printerConfig.ip,
-        port: printerConfig.port
-      });
-      printer.write(text);
-      printer.end();
-
-    } else {
-      writeFile(printerConfig.interface, text, function (err) {
-        if (err) {
-          if ('function' == typeof cb) {
-            cb("Print failed: " + err);
-          } else {
-            console.error("Print failed", err);
-          }
-        } else {
-          if ('function' == typeof cb) {
-            cb("Print failed: " + err);
-          } else {
-            console.log("Print done");
-          }
+  raw: function(text, cb) {
+    iface.execute(text, function (err) {
+      if (!err) {
+        if (typeof cb === "function") {
+          cb(null);
         }
-      });
-    }
+      } else {
+        if (typeof cb === "function") {
+          cb(err);
+        }
+      }
+    });
   }
 };
 
