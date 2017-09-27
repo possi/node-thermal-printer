@@ -9,7 +9,7 @@ function PrinterIface(printerName, moduleName) {
   }
 }
 PrinterIface.prototype.getPrinterName = function() {
-  let name = this.name;
+  var name = this.name;
   if (!name || name === "auto") {
     const pl = this.driver.getPrinters().filter(function(p) { return p.attributes.indexOf("RAW-ONLY") > -1 });
     if (pl.length > 0) {
